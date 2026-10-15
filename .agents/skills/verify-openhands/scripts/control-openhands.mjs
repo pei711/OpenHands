@@ -26,6 +26,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deflateSync, gunzipSync } from "node:zlib";
 import { buildIdentity } from "./lib/build-id.mjs";
+import { hasLiveLinuxProcessGroup } from "./lib/linux-process-group.mjs";
 import {
   editorOffset,
   launcherEnvFor,
@@ -228,10 +229,11 @@ function groupAlive(pgid) {
   if (!pgid) return false;
   try {
     process.kill(-pgid, 0);
-    return true;
   } catch (error) {
-    return error.code === "EPERM";
+    return error.code === "EPERM" || error.code === "EACCES";
   }
+  if (process.platform !== "linux") return true;
+  return hasLiveLinuxProcessGroup(pgid) ?? true;
 }
 
 function commandLine(pid) {
