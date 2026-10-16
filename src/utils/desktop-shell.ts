@@ -10,6 +10,7 @@ interface DesktopShellBridge {
   platform?: string;
   isFullScreen?: () => boolean;
   onFullScreenChange?: (cb: (isFullScreen: boolean) => void) => () => void;
+  setAppearance?: (appearance: "dark" | "light") => void;
 }
 
 declare global {
@@ -43,4 +44,11 @@ export function subscribeDesktopFullScreen(
   cb: (isFullScreen: boolean) => void,
 ): () => void {
   return getDesktopShell()?.onFullScreenChange?.(cb) ?? (() => {});
+}
+
+/** Keep native desktop window chrome aligned with the Canvas color palette. */
+export function setDesktopAppearance(appearance: "dark" | "light"): void {
+  const shell = getDesktopShell();
+  if (shell?.platform !== "win32" && shell?.platform !== "linux") return;
+  shell.setAppearance?.(appearance);
 }

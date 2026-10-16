@@ -1,5 +1,6 @@
 import { type ColorThemeKey } from "./types";
 import { COLOR_THEMES, DEFAULT_COLOR_THEME } from "./definitions";
+import { setDesktopAppearance } from "#/utils/desktop-shell";
 
 const STORAGE_KEY = "openhands-color-theme";
 let activeColorTheme: ColorThemeKey | null = null;
@@ -118,6 +119,7 @@ export function applyColorTheme(key: ColorThemeKey): void {
 
   activeColorTheme = key;
   document.documentElement.style.colorScheme = COLOR_THEMES[key].appearance;
+  setDesktopAppearance(COLOR_THEMES[key].appearance);
   for (const listener of colorThemeListeners) listener();
 }
 
@@ -131,4 +133,7 @@ export const COLOR_THEME_BOOTSTRAP_SCRIPT = `(() => {
   style.textContent = themes[key].css;
   document.head.appendChild(style);
   document.documentElement.style.colorScheme = themes[key].appearance;
+  if (window.desktopShell?.platform === "win32" || window.desktopShell?.platform === "linux") {
+    window.desktopShell.setAppearance?.(themes[key].appearance);
+  }
 })();`;

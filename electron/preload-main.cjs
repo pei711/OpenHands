@@ -2,9 +2,8 @@
  * Preload for the main app window.
  *
  * The renderer is the ordinary web app served over loopback, so it cannot tell
- * a desktop launch from a browser tab. This exposes just enough for the shell
- * to reserve room for the macOS traffic lights and mark a drag region — see
- * src/utils/desktop-shell.ts.
+ * a desktop launch from a browser tab. This exposes fullscreen state and lets
+ * the renderer sync native window appearance — see src/utils/desktop-shell.ts.
  *
  * It also exposes the MARS bridge (`window.marsBridge`). Page JavaScript never
  * gets direct network access to harness-api or the bearer token; every call is
@@ -41,6 +40,10 @@ contextBridge.exposeInMainWorld("desktopShell", {
   onFullScreenChange(cb) {
     listeners.add(cb);
     return () => listeners.delete(cb);
+  },
+  /** Set the native window/menu appearance before the renderer paints. */
+  setAppearance(appearance) {
+    return ipcRenderer.sendSync("window:appearance:set", appearance);
   },
 });
 

@@ -589,6 +589,29 @@ ipcMain.on("window:full-screen:get", (event) => {
   event.returnValue = win !== null && !win.isDestroyed() && win.isFullScreen();
 });
 
+// Native title/menu chrome on Windows and Linux follows the active Canvas
+// palette. Only the main renderer may set it, and the value is a closed union
+// because it crosses the context-isolated preload boundary.
+ipcMain.on("window:appearance:set", (event, appearance) => {
+  if (
+    !mainWin ||
+    mainWin.isDestroyed() ||
+    event.sender !== mainWin.webContents ||
+    (appearance !== "dark" && appearance !== "light")
+  ) {
+    event.returnValue = false;
+    return;
+  }
+
+  if (
+    (process.platform === "win32" || process.platform === "linux") &&
+    nativeTheme.themeSource !== appearance
+  ) {
+    nativeTheme.themeSource = appearance;
+  }
+  event.returnValue = true;
+});
+
 // ── Backend stack ─────────────────────────────────────────────────────────────
 
 /**
@@ -708,6 +731,8 @@ async function startStack() {
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
+  // The renderer's pre-paint bootstrap replaces this with the persisted
+  // Canvas appearance before the hidden main window is shown.
   nativeTheme.themeSource = "dark";
 
   // Set the dock icon explicitly on macOS so `npm run desktop` shows the

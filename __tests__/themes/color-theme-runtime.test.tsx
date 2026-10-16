@@ -15,6 +15,7 @@ import {
 describe("color themes", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    delete window.desktopShell;
     applyColorTheme(DEFAULT_COLOR_THEME);
   });
   afterEach(cleanup);
@@ -81,6 +82,25 @@ describe("color themes", () => {
     unsubscribe();
   });
 
+  it("syncs light and dark appearances to the Windows and Linux desktop shell", () => {
+    const setAppearance = vi.fn();
+    window.desktopShell = { platform: "win32", setAppearance };
+
+    setColorTheme("light-plus");
+    setColorTheme("openhands-neutral");
+
+    expect(setAppearance.mock.calls).toEqual([["light"], ["dark"]]);
+  });
+
+  it("does not change native appearance on macOS or in a browser", () => {
+    const setAppearance = vi.fn();
+    window.desktopShell = { platform: "darwin", setAppearance };
+    setColorTheme("light-plus");
+    delete window.desktopShell;
+    setColorTheme("openhands-neutral");
+    expect(setAppearance).not.toHaveBeenCalled();
+  });
+
   it.each(["light-plus", "solarized-light", "openhands-neutral"] as const)(
     "bootstraps %s before React mounts",
     (key) => {
@@ -110,6 +130,16 @@ describe("color themes", () => {
       }
     },
   );
+
+  it("syncs the persisted appearance before the desktop window is first shown", () => {
+    const setAppearance = vi.fn();
+    window.desktopShell = { platform: "linux", setAppearance };
+    localStorage.setItem("openhands-color-theme", "solarized-light");
+
+    window.eval(COLOR_THEME_BOOTSTRAP_SCRIPT);
+
+    expect(setAppearance).toHaveBeenCalledWith("light");
+  });
 
   it.each(["missing-theme", "constructor", "__proto__"])(
     "rejects invalid stored key %s",
